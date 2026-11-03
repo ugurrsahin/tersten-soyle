@@ -1,0 +1,549 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Tersten Söyle</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#F2B830; --paper:#FFF6DD; --ink:#1C2340; --pink:#FF5C8A; --muted:#565b72; --line:#1C2340; --good:#1E8F5A; --bad:#C8324F;
+  color-scheme:light;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#141A33; --paper:#222A4D; --ink:#FFF6DD; --pink:#FF6F98; --muted:#b5b9d0; --line:#F2B830; --good:#4FD18E; --bad:#FF7C93;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#141A33; --paper:#222A4D; --ink:#FFF6DD; --pink:#FF6F98; --muted:#b5b9d0; --line:#F2B830; --good:#4FD18E; --bad:#FF7C93;
+  color-scheme:dark;
+}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{
+  margin:0; background:var(--bg); color:var(--ink);
+  font-family:"Bricolage Grotesque",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  font-size:17px; line-height:1.5; -webkit-font-smoothing:antialiased;
+}
+main{max-width:560px; margin:0 auto; padding:28px 18px 56px}
+
+header{margin-bottom:22px}
+h1{
+  font-size:clamp(2.6rem,11vw,3.8rem); line-height:.95; font-weight:800; letter-spacing:-.03em;
+  margin:0; display:inline-block; cursor:pointer; user-select:none;
+  transition:transform .6s cubic-bezier(.6,-0.4,.3,1.4);
+}
+h1.flipped{transform:scaleX(-1)}
+header p{margin:.6rem 0 0; color:var(--muted); max-width:44ch}
+
+.score{display:flex; gap:10px; margin:18px 0 22px; flex-wrap:wrap}
+.score span{
+  background:var(--paper); border:2px solid var(--line); border-radius:999px;
+  padding:4px 14px; font-weight:600; font-size:.95rem;
+}
+.score span.turn{background:var(--ink); color:var(--paper)}
+
+ol.steps{list-style:none; padding:0; margin:0 0 18px; display:flex; gap:6px}
+ol.steps li{
+  flex:1; text-align:center; font-size:.82rem; font-weight:600; padding:6px 2px;
+  border-bottom:4px solid color-mix(in srgb,var(--ink) 20%,transparent); color:var(--muted);
+}
+ol.steps li.active{border-color:var(--ink); color:var(--ink)}
+ol.steps li.done{border-color:var(--pink)}
+
+.panel{
+  background:var(--paper); border:3px solid var(--line); border-radius:22px;
+  padding:22px 20px; box-shadow:6px 6px 0 var(--line);
+}
+.panel h2{font-size:1.55rem; line-height:1.15; margin:0 0 .3rem; letter-spacing:-.01em}
+.panel .who{font-weight:600; color:var(--pink); margin:0 0 .2rem; font-size:.95rem}
+.panel p.hint{margin:0 0 1rem; color:var(--muted)}
+
+label.field{display:block; font-weight:600; margin:.4rem 0 .35rem}
+.row{display:flex; gap:8px; flex-wrap:wrap; align-items:center}
+input[type=text]{
+  flex:1; min-width:0; font:inherit; font-size:1.1rem; padding:12px 14px;
+  border:2px solid var(--line); border-radius:14px; background:var(--bg); color:var(--ink);
+}
+input.secret:not(:focus){filter:blur(7px)}
+input.secret:placeholder-shown{filter:none}
+
+button{font:inherit; cursor:pointer}
+.btn{
+  border:2px solid var(--line); background:var(--paper); color:var(--ink);
+  border-radius:999px; padding:10px 18px; font-weight:600; font-size:1rem;
+  transition:transform .08s;
+}
+.btn:active{transform:translateY(2px)}
+.btn.main{background:var(--ink); color:var(--paper); padding:14px 22px; font-size:1.08rem; width:100%}
+.btn.play{background:var(--bg)}
+.btn.play.playing{background:var(--pink); color:#fff}
+.btn:disabled{opacity:.4; cursor:not-allowed}
+:focus-visible{outline:3px solid var(--pink); outline-offset:3px}
+
+.recwrap{display:flex; align-items:center; gap:16px; margin:18px 0 6px}
+.rec{
+  width:92px; height:92px; flex:none; border-radius:50%; border:3px solid var(--line);
+  background:var(--pink); color:#fff; font-weight:800; font-size:.95rem; line-height:1.1;
+  display:grid; place-items:center; box-shadow:4px 4px 0 var(--line);
+}
+.rec.on{animation:pulse 1s ease-in-out infinite; background:var(--bad)}
+@keyframes pulse{50%{box-shadow:0 0 0 12px color-mix(in srgb,var(--pink) 35%,transparent)}}
+.recinfo{color:var(--muted); font-size:.95rem}
+.recinfo b{color:var(--ink); font-size:1.4rem; display:block; font-variant-numeric:tabular-nums}
+
+canvas.wave{width:100%; height:64px; display:block; margin:10px 0 4px}
+.actions{display:flex; gap:8px; flex-wrap:wrap; margin:12px 0 18px}
+
+.big-listen{
+  width:100%; border:3px solid var(--line); border-radius:18px; background:var(--bg);
+  color:var(--ink); padding:22px; font-weight:800; font-size:1.3rem; margin:6px 0 4px;
+}
+.big-listen.playing{background:var(--pink); color:#fff}
+
+.result{text-align:center; padding:6px 0 10px}
+.result .verdict{font-size:2.4rem; font-weight:800; margin:0; letter-spacing:-.02em}
+.result .verdict.good{color:var(--good)}
+.result .verdict.bad{color:var(--bad)}
+.result dl{display:grid; grid-template-columns:auto 1fr; gap:4px 14px; text-align:left; margin:16px 0}
+.result dt{color:var(--muted)}
+.result dd{margin:0; font-weight:600; font-size:1.1rem}
+.grid4{display:grid; grid-template-columns:1fr 1fr; gap:8px; margin:6px 0 18px}
+.grid4 .btn{border-radius:14px; padding:12px 10px; font-size:.92rem}
+.override{display:flex; gap:8px; justify-content:center; margin-bottom:16px; flex-wrap:wrap}
+.override .btn{font-size:.9rem; padding:6px 14px}
+
+.err{
+  margin-top:14px; padding:12px 14px; border-radius:14px; border:2px solid var(--bad);
+  color:var(--ink); background:color-mix(in srgb,var(--bad) 12%,var(--paper)); font-size:.95rem;
+}
+.howto{margin-top:28px; color:var(--muted); font-size:.95rem}
+.howto summary{cursor:pointer; font-weight:600; color:var(--ink)}
+.howto ol{padding-left:1.2rem}
+
+@media (prefers-reduced-motion:reduce){
+  h1{transition:none}
+  .rec.on{animation:none}
+}
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1 id="title" class="flipped" title="Dokun, çevir">Tersten Söyle</h1>
+    <p>Ünlü ismini söyle, ters çevir. Arkadaşın tersini taklit etsin, tekrar ters çevirince ne duyduğunu tahmin etsin.</p>
+  </header>
+
+  <div class="score" id="score"></div>
+
+  <ol class="steps" id="steps">
+    <li>1. İsim</li><li>2. Taklit</li><li>3. Tahmin</li><li>4. Sonuç</li>
+  </ol>
+
+  <!-- Adım 1 -->
+  <section class="panel" id="s1">
+    <p class="who" id="s1who"></p>
+    <h2>Gizli ünlüyü seç ve söyle</h2>
+    <p class="hint">Arkadaşın ekrana bakmasın. İsmi net ve normal hızda söyle.</p>
+
+    <label class="field" for="name">Ünlü ismi</label>
+    <div class="row">
+      <input type="text" id="name" class="secret" placeholder="örn. Barış Manço" autocomplete="off" autocapitalize="words" spellcheck="false">
+      <button class="btn" id="randomBtn" type="button">Rastgele</button>
+    </div>
+
+    <div class="recwrap">
+      <button class="rec" id="rec1" type="button" aria-label="Kayda başla">Kaydet</button>
+      <div class="recinfo" id="info1"><b>0,0 sn</b>Dokun, ismi söyle, tekrar dokun.</div>
+    </div>
+    <div id="after1" hidden>
+      <canvas class="wave" id="wave1"></canvas>
+      <div class="actions">
+        <button class="btn play" data-play="orig" type="button">Düz dinle</button>
+        <button class="btn play" data-play="origRev" type="button">Ters dinle</button>
+      </div>
+      <button class="btn main" id="to2" type="button">Telefonu arkadaşına ver</button>
+    </div>
+    <div class="err" id="err1" hidden></div>
+  </section>
+
+  <!-- Adım 2 -->
+  <section class="panel" id="s2" hidden>
+    <p class="who" id="s2who"></p>
+    <h2>Ters sesi dinle, aynen taklit et</h2>
+    <p class="hint">İstediğin kadar dinle. Anlamsız gelecek, sorun değil: duyduğun sesleri olduğu gibi tekrarla.</p>
+
+    <button class="big-listen" data-play="origRev" type="button">Ters kaydı dinle</button>
+
+    <div class="recwrap">
+      <button class="rec" id="rec2" type="button" aria-label="Taklidi kaydet">Taklit et</button>
+      <div class="recinfo" id="info2"><b>0,0 sn</b>Dokun, duyduğunu taklit et, tekrar dokun.</div>
+    </div>
+    <div id="after2" hidden>
+      <canvas class="wave" id="wave2"></canvas>
+      <div class="actions">
+        <button class="btn play" data-play="imit" type="button">Taklidimi dinle</button>
+        <button class="btn play" data-play="origRev" type="button">Ters kaydı tekrar dinle</button>
+      </div>
+      <button class="btn main" id="to3" type="button">Taklidi ters çevir</button>
+    </div>
+    <div class="err" id="err2" hidden></div>
+  </section>
+
+  <!-- Adım 3 -->
+  <section class="panel" id="s3" hidden>
+    <p class="who" id="s3who"></p>
+    <h2>Şimdi ne duyuyorsun?</h2>
+    <p class="hint">Taklidin ters çevrildi. Dinle ve hangi ünlü olduğunu tahmin et.</p>
+
+    <button class="big-listen" data-play="imitRev" type="button">Ters çevrilmiş taklidi dinle</button>
+
+    <label class="field" for="guess" style="margin-top:16px">Tahminin</label>
+    <div class="row" style="margin-bottom:16px">
+      <input type="text" id="guess" placeholder="Kim bu?" autocomplete="off" autocapitalize="words" spellcheck="false">
+    </div>
+    <button class="btn main" id="to4" type="button">Cevabı göster</button>
+  </section>
+
+  <!-- Adım 4 -->
+  <section class="panel" id="s4" hidden>
+    <div class="result">
+      <p class="verdict" id="verdict"></p>
+      <dl>
+        <dt>Cevap</dt><dd id="rName"></dd>
+        <dt>Tahmin</dt><dd id="rGuess"></dd>
+      </dl>
+      <div class="override">
+        <button class="btn" id="markHit" type="button">Aslında bildi</button>
+        <button class="btn" id="markMiss" type="button">Aslında bilemedi</button>
+      </div>
+    </div>
+    <p class="hint" style="margin-bottom:8px">Tüm kayıtları karşılaştır:</p>
+    <div class="grid4">
+      <button class="btn play" data-play="orig" type="button">Orijinal</button>
+      <button class="btn play" data-play="origRev" type="button">Orijinalin tersi</button>
+      <button class="btn play" data-play="imit" type="button">Taklit</button>
+      <button class="btn play" data-play="imitRev" type="button">Taklidin tersi</button>
+    </div>
+    <button class="btn main" id="next" type="button">Yeni tur, roller değişsin</button>
+  </section>
+
+  <details class="howto">
+    <summary>Nasıl oynanır?</summary>
+    <ol>
+      <li>Birinci oyuncu gizlice bir ünlü seçer ve ismi kaydeder.</li>
+      <li>Uygulama kaydı ters çevirir. İkinci oyuncu bu tuhaf sesi dinler ve olabildiğince aynısını kaydeder.</li>
+      <li>Uygulama taklidi tekrar ters çevirir. Taklit iyiyse ünlünün ismi bozuk ama tanınabilir şekilde duyulur.</li>
+      <li>İkinci oyuncu tahmin eder, roller değişir.</li>
+    </ol>
+    <p>Mikrofon izni istenirse izin ver. Kulaklık takarsan taklit daha kolay olur.</p>
+  </details>
+</main>
+
+<script>
+(() => {
+  const $ = s => document.querySelector(s);
+  const $$ = s => document.querySelectorAll(s);
+
+  const CELEBS = [
+    "Tarkan","Sezen Aksu","Barış Manço","Cem Yılmaz","Kemal Sunal","Hadise","Kenan İmirzalıoğlu",
+    "Beren Saat","Acun Ilıcalı","Hande Erçel","Haluk Bilginer","Şahan Gökbakar","Ajda Pekkan",
+    "Mustafa Sandal","Kıvanç Tatlıtuğ","Fatih Terim","Zeki Müren","Müslüm Gürses","Arda Güler",
+    "Burak Yılmaz","Kenan Doğulu","Demet Akalın","Ferdi Tayfur","Cüneyt Arkın","Türkan Şoray",
+    "Leonardo DiCaprio","Cristiano Ronaldo","Lionel Messi","Taylor Swift","Shakira","Michael Jackson",
+    "Elon Musk","Brad Pitt","Rihanna","Ed Sheeran","Beyoncé","Keanu Reeves","Arnold Schwarzenegger"
+  ];
+
+  const state = { name:"", orig:null, origRev:null, imit:null, imitRev:null, round:1, score:[0,0], step:1, lastHit:null };
+  const players = ["Oyuncu A","Oyuncu B"];
+  const sayer = () => (state.round - 1) % 2;
+  const guesser = () => 1 - sayer();
+
+  // ---------- Başlık animasyonu ----------
+  const title = $("#title");
+  requestAnimationFrame(() => setTimeout(() => title.classList.remove("flipped"), 350));
+  title.addEventListener("click", () => title.classList.toggle("flipped"));
+
+  // ---------- Ses ----------
+  let actx = null;
+  function ac() {
+    if (!actx) actx = new (window.AudioContext || window.webkitAudioContext)();
+    if (actx.state === "suspended") actx.resume();
+    return actx;
+  }
+
+  let current = null;
+  function stopPlay() {
+    if (current) {
+      try { current.src.stop(); } catch (e) {}
+      current.key && $$(`[data-play="${current.key}"]`).forEach(b => b.classList.remove("playing"));
+      current = null;
+    }
+  }
+  function play(key) {
+    const buf = state[key];
+    if (!buf) return;
+    const wasSame = current && current.key === key;
+    stopPlay();
+    if (wasSame) return; // ikinci dokunuş durdurur
+    const c = ac();
+    const src = c.createBufferSource();
+    src.buffer = buf;
+    src.connect(c.destination);
+    src.start();
+    current = { src, key };
+    $$(`[data-play="${key}"]`).forEach(b => b.classList.add("playing"));
+    src.onended = () => {
+      if (current && current.src === src) {
+        $$(`[data-play="${key}"]`).forEach(b => b.classList.remove("playing"));
+        current = null;
+      }
+    };
+  }
+  document.addEventListener("click", e => {
+    const b = e.target.closest("[data-play]");
+    if (b) play(b.dataset.play);
+  });
+
+  function reverse(buf) {
+    const out = ac().createBuffer(buf.numberOfChannels, buf.length, buf.sampleRate);
+    for (let ch = 0; ch < buf.numberOfChannels; ch++) {
+      const s = buf.getChannelData(ch), d = out.getChannelData(ch), n = s.length;
+      for (let i = 0; i < n; i++) d[i] = s[n - 1 - i];
+    }
+    return out;
+  }
+
+  // Baştaki/sondaki sessizliği kırp ve sesi normalize et
+  function clean(buf) {
+    const d = buf.getChannelData(0), sr = buf.sampleRate;
+    let peak = 0;
+    for (let i = 0; i < d.length; i++) { const v = Math.abs(d[i]); if (v > peak) peak = v; }
+    const th = Math.max(0.01, peak * 0.08);
+    let a = 0, b = d.length - 1;
+    while (a < d.length && Math.abs(d[a]) < th) a++;
+    while (b > a && Math.abs(d[b]) < th) b--;
+    if (b - a < sr * 0.15) { a = 0; b = d.length - 1; }
+    const pad = Math.floor(sr * 0.1);
+    a = Math.max(0, a - pad); b = Math.min(d.length - 1, b + pad);
+    const len = b - a + 1;
+    const gain = peak > 0 ? Math.min(6, 0.9 / peak) : 1;
+    const out = ac().createBuffer(buf.numberOfChannels, len, sr);
+    for (let ch = 0; ch < buf.numberOfChannels; ch++) {
+      const s = buf.getChannelData(ch).subarray(a, b + 1), o = out.getChannelData(ch);
+      for (let i = 0; i < len; i++) o[i] = s[i] * gain;
+    }
+    return out;
+  }
+
+  function decode(ab) {
+    return new Promise((res, rej) => {
+      const p = ac().decodeAudioData(ab, res, rej);
+      if (p && p.then) p.then(res, rej);
+    });
+  }
+
+  function drawWave(canvas, buf) {
+    const dpr = window.devicePixelRatio || 1;
+    const w = canvas.clientWidth, h = canvas.clientHeight;
+    canvas.width = w * dpr; canvas.height = h * dpr;
+    const g = canvas.getContext("2d");
+    g.scale(dpr, dpr);
+    g.clearRect(0, 0, w, h);
+    g.fillStyle = getComputedStyle(document.documentElement).getPropertyValue("--ink").trim();
+    const d = buf.getChannelData(0);
+    const bars = Math.floor(w / 4), step = Math.floor(d.length / bars) || 1;
+    for (let i = 0; i < bars; i++) {
+      let m = 0;
+      for (let j = i * step; j < (i + 1) * step && j < d.length; j++) { const v = Math.abs(d[j]); if (v > m) m = v; }
+      const bh = Math.max(2, m * h * 0.95);
+      g.fillRect(i * 4, (h - bh) / 2, 2.5, bh);
+    }
+  }
+
+  // ---------- Kayıt ----------
+  let rec = null, stream = null, timer = null, autoStop = null;
+  const MAX_SEC = 8;
+
+  function fmt(s) { return s.toFixed(1).replace(".", ",") + " sn"; }
+
+  async function toggleRec(btn, info, errBox, idleLabel, onDone) {
+    if (rec && rec.state === "recording") { rec.stop(); return; }
+    stopPlay();
+    errBox.hidden = true;
+    if (!navigator.mediaDevices || !window.MediaRecorder) {
+      showErr(errBox, "Bu tarayıcı ses kaydını desteklemiyor. Chrome, Safari veya Firefox’un güncel sürümünü dene.");
+      return;
+    }
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } });
+    } catch (e) {
+      showErr(errBox, "Mikrofona erişilemedi. Tarayıcıda mikrofon iznini aç. Sayfa sohbetin içinde açıksa, kendi sekmesinde açmayı dene.");
+      return;
+    }
+    ac();
+    const chunks = [];
+    rec = new MediaRecorder(stream);
+    rec.ondataavailable = e => { if (e.data && e.data.size) chunks.push(e.data); };
+    rec.onstop = async () => {
+      clearInterval(timer); clearTimeout(autoStop);
+      stream.getTracks().forEach(t => t.stop());
+      btn.classList.remove("on"); btn.textContent = "Tekrar"; btn.setAttribute("aria-label", "Yeniden kaydet");
+      info.innerHTML = "<b>İşleniyor…</b>&nbsp;";
+      try {
+        const blob = new Blob(chunks, { type: rec.mimeType || "audio/webm" });
+        const raw = await decode(await blob.arrayBuffer());
+        const buf = clean(raw);
+        info.innerHTML = `<b>${fmt(buf.duration)}</b>Beğenmezsen tekrar kaydet.`;
+        onDone(buf);
+      } catch (e) {
+        info.innerHTML = `<b>0,0 sn</b>${idleLabel}`;
+        showErr(errBox, "Kayıt çözülemedi. Bir kez daha dene.");
+      }
+    };
+    rec.start();
+    btn.classList.add("on"); btn.textContent = "Bitir"; btn.setAttribute("aria-label", "Kaydı bitir");
+    const t0 = performance.now();
+    timer = setInterval(() => {
+      const s = (performance.now() - t0) / 1000;
+      info.innerHTML = `<b>${fmt(s)}</b>Kaydediliyor, bitince dokun.`;
+    }, 100);
+    autoStop = setTimeout(() => { if (rec && rec.state === "recording") rec.stop(); }, MAX_SEC * 1000);
+  }
+
+  function showErr(box, msg) { box.textContent = msg; box.hidden = false; }
+
+  // ---------- Akış ----------
+  function renderScore() {
+    $("#score").innerHTML = players.map((p, i) =>
+      `<span class="${i === guesser() ? "turn" : ""}">${p}: ${state.score[i]}</span>`
+    ).join("") + `<span>Tur ${state.round}</span>`;
+  }
+
+  function go(step) {
+    stopPlay();
+    state.step = step;
+    [1,2,3,4].forEach(n => $("#s" + n).hidden = n !== step);
+    $$("#steps li").forEach((li, i) => {
+      li.classList.toggle("active", i + 1 === step);
+      li.classList.toggle("done", i + 1 < step);
+    });
+    $("#s1who").textContent = `${players[sayer()]} söylüyor`;
+    $("#s2who").textContent = `${players[guesser()]} taklit ediyor`;
+    $("#s3who").textContent = `${players[guesser()]} tahmin ediyor`;
+    renderScore();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  $("#randomBtn").addEventListener("click", () => {
+    let pick;
+    do { pick = CELEBS[Math.floor(Math.random() * CELEBS.length)]; } while (pick === $("#name").value && CELEBS.length > 1);
+    $("#name").value = pick;
+    $("#name").blur();
+  });
+
+  $("#rec1").addEventListener("click", e =>
+    toggleRec(e.currentTarget, $("#info1"), $("#err1"), "Dokun, ismi söyle, tekrar dokun.", buf => {
+      state.orig = buf;
+      state.origRev = reverse(buf);
+      $("#after1").hidden = false;
+      drawWave($("#wave1"), buf);
+    })
+  );
+
+  $("#to2").addEventListener("click", () => {
+    const n = $("#name").value.trim();
+    if (!n) { showErr($("#err1"), "Önce ünlünün ismini yaz ki sonunda cevabı kontrol edebilelim."); $("#name").focus(); return; }
+    state.name = n;
+    go(2);
+  });
+
+  $("#rec2").addEventListener("click", e =>
+    toggleRec(e.currentTarget, $("#info2"), $("#err2"), "Dokun, duyduğunu taklit et, tekrar dokun.", buf => {
+      state.imit = buf;
+      state.imitRev = reverse(buf);
+      $("#after2").hidden = false;
+      drawWave($("#wave2"), buf);
+    })
+  );
+
+  $("#to3").addEventListener("click", () => go(3));
+
+  function norm(s) {
+    return s.toLocaleLowerCase("tr").normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+      .replace(/ı/g, "i").replace(/[^a-z0-9]/g, "");
+  }
+  function lev(a, b) {
+    const m = a.length, n = b.length, d = Array.from({ length: m + 1 }, (_, i) => [i]);
+    for (let j = 1; j <= n; j++) d[0][j] = j;
+    for (let i = 1; i <= m; i++) for (let j = 1; j <= n; j++)
+      d[i][j] = Math.min(d[i-1][j] + 1, d[i][j-1] + 1, d[i-1][j-1] + (a[i-1] === b[j-1] ? 0 : 1));
+    return d[m][n];
+  }
+  function isMatch(guess, answer) {
+    const g = norm(guess), a = norm(answer);
+    if (!g) return false;
+    if (g === a) return true;
+    // soyadı ya da ad tek başına yeterli olsun (örn. "Tarkan", "Messi")
+    const parts = answer.split(/\s+/).map(norm).filter(p => p.length >= 3);
+    if (parts.some(p => p === g || lev(p, g) <= 1)) return true;
+    return lev(g, a) <= Math.max(1, Math.floor(a.length / 6));
+  }
+
+  function setVerdict(hit) {
+    const v = $("#verdict");
+    v.textContent = hit ? "Bildin!" : "Bilemedin";
+    v.className = "verdict " + (hit ? "good" : "bad");
+    $("#markHit").hidden = hit;
+    $("#markMiss").hidden = !hit;
+  }
+
+  $("#to4").addEventListener("click", () => {
+    const guess = $("#guess").value.trim();
+    const hit = isMatch(guess, state.name);
+    state.lastHit = hit;
+    if (hit) state.score[guesser()]++;
+    $("#rName").textContent = state.name;
+    $("#rGuess").textContent = guess || "—";
+    setVerdict(hit);
+    go(4);
+  });
+
+  $("#markHit").addEventListener("click", () => {
+    if (state.lastHit === false) { state.score[guesser()]++; state.lastHit = true; setVerdict(true); renderScore(); }
+  });
+  $("#markMiss").addEventListener("click", () => {
+    if (state.lastHit === true) { state.score[guesser()]--; state.lastHit = false; setVerdict(false); renderScore(); }
+  });
+
+  $("#next").addEventListener("click", () => {
+    state.round++;
+    Object.assign(state, { name:"", orig:null, origRev:null, imit:null, imitRev:null, lastHit:null });
+    $("#name").value = ""; $("#guess").value = "";
+    $("#after1").hidden = true; $("#after2").hidden = true;
+    $("#err1").hidden = true; $("#err2").hidden = true;
+    ["#rec1", "#rec2"].forEach(id => $(id).classList.remove("on"));
+    $("#rec1").textContent = "Kaydet";
+    $("#rec2").textContent = "Taklit et";
+    $("#info1").innerHTML = "<b>0,0 sn</b>Dokun, ismi söyle, tekrar dokun.";
+    $("#info2").innerHTML = "<b>0,0 sn</b>Dokun, duyduğunu taklit et, tekrar dokun.";
+    go(1);
+  });
+
+  window.addEventListener("resize", () => {
+    if (state.orig && !$("#after1").hidden) drawWave($("#wave1"), state.orig);
+    if (state.imit && !$("#after2").hidden) drawWave($("#wave2"), state.imit);
+  });
+
+  go(1);
+})();
+</script>
+</body>
+</html>
